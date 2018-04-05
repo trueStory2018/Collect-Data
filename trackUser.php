@@ -21,6 +21,8 @@
 	$usersToTrack = getTrackedUsers();
 	foreach ($usersToTrack as $user) {
 		$checkResult = $user;
+		if ($user['trackingResults'])
+			continue;
 		$userSnapshot = getUserSnapshot($user['username']);
 		if ($user['private']){
 			//If user is private it means we have sent him a private message and a follow request
@@ -62,7 +64,7 @@
 		$earliestTimestamp = time();
 		$latestTimestamp = 0;
 		$overallActions = 0;
-		$maxRuns = 8;
+		$maxRuns = 5;
 		$counter = 0;
 		$maxId = null;
 		$followers = array();
