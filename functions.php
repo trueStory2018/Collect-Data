@@ -1,6 +1,5 @@
 <?php
 	function collectData($ig, $uid, $idol = false, $debug = false) {
-		include "/config/params.php";
 		$maxRuns = 8;
 		$time_start = microtime(true); 
 		if ($debug)

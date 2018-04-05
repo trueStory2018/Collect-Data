@@ -2,7 +2,7 @@
 	//error_reporting(0);
 	require __DIR__.'/../vendor/autoload.php';
 	include 'functions.php';
-	include_once '/config/params.php';
+	require_once ('/config/params.php');
 	$debug = false;
 	$truncatedDebug = false;
 	$beginning = microtime(true);
