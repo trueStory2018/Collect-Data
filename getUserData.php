@@ -1,13 +1,14 @@
 <?php
 	$maxUsers = 6000;
 	$loop = 0;
-	$idols = getIdols($idolId);
-	if (!empty($users)){
-		foreach ($idols['followers'] as $user) {
+	if (!empty($idols)){
+		foreach ($idols as $idol) {
 			try {
-			    $uid = $idol['_id'];
-				collectData($uid,false,$debug);    
-				
+			    $idolId = $idol['_id'];
+			    $idolFollowers = getIdols($idolId);
+			    foreach ($idolFollowers as $follower) {
+			    	collectData($uid,false,$innerDebug);
+			    }			
 			} catch (\Exception $e) {
 			    echo 'Something went wrong: '.$e->getMessage()."\n";
 			}

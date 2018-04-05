@@ -1,14 +1,13 @@
 <?php
-	error_reporting(0);
+	//error_reporting(0);
 	require __DIR__.'/../vendor/autoload.php';
 	include 'functions.php';
-	$username = 'hola.halo777';
-	$password = 'lama!!123';
+	include_once '/config/params.php';
 	$debug = false;
 	$truncatedDebug = false;
-
+	$beginning = microtime(true);
 	$ig = new \InstagramAPI\Instagram($debug, $truncatedDebug);
-	
+	$innerDebug = isset($_POST['debug']) ? $_POST['debug'] : false;
 	
 	try {
 	    $ig->login($username, $password);
@@ -17,52 +16,22 @@
 	    echo 'Something went wrong: '.$e->getMessage()."\n";
 	    exit(0);
 	}
+	$getIdolData = microtime(true);
+	echo 'Get Idol Data starts';
+	include_once "getIdolData.php";
+	echo PHP_EOL.'getIdolData done';
+	echo PHP_EOL.'Total getIdolData time: '.(microtime(true) - $getIdolData).' Seconds';
+	
+	$getUserData = microtime(true);
+	echo 'Get Idol Data starts';
+	include_once "getUserData.php";
+	echo PHP_EOL.'Total getUserData time: '.(microtime(true) - $getUserData).' Seconds';
 	//Necessary params
-	$request = $_POST['request'];
-	$debug = $_POST['debug'];
+	echo PHP_EOL.'Total execution time: '.(microtime(true) - $beginning).' Seconds';
 	
 	$resultArray = array(
 					'result' => 0,
 					'resultText' = 'OK'
 				);
-
-	try {
-		if (strcmp($request, 'idolDataCollect')==0) {
-			include_once "getIdolData.php";
-		}
-
-		else if (strcmp($request, 'userDataCollect')==0) {
-			$idolId = $_POST['idolId'];
-			include_once "getUserData.php";
-		}
-
-		else if (strcmp($request, 'getUser')==0) {
-			include_once "getUser.php";
-		}
-
-		else if (strcmp($request, 'trackUsers')==0) {
-			include_once "getUser.php";
-		}
-
-		else {
-			$resultArray['result'] = '-1';
-			$resultArray['resultText'] = 'Bad request';
-		}
-	}
-	catch (Exception $e) {
-		$resultArray['result'] = 1;
-		$resultText['resultText'] = $e->getMessage();
-	}
-
-	echo json_encode($resultArray);
-	/*include_once '/getDriveAccess.php';
-		$file = new Google_Service_Drive_DriveFile;
-		$file->setName('test');
-		$file->setFileExtension('json');
-		$response = $service->files->create($file,array(
-		  'mimeType' => '',
-		  'uploadType' => 'media'
-		));
-		var_dump($response);*/
 ?>
 

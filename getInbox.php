@@ -27,12 +27,16 @@
 			$person = array();
 		    // Get the UserPK ID for "natgeo" (National Geographic).
 		    $rankToken = \InstagramAPI\Signatures::generateUUID();
-		    //$uid = $ig->people->getUserIdForName('wild.feather');
-		    $resp = $ig->direct->getInbox();
+		    /*$recepients['users'] = array();
+		    array_push($recepients['users'], '4226040806');
+		    print_r($recepients);
 		    echo '<pre>';
-		    print_r($resp);
-		    echo '</pre>';
-
+		    $messageResponse = $ig->direct->sendText($recepients,'Hey Terry, its Eldad. This is just a text to see if you are a true story');
+		    print_r($messageResponse);
+		    echo '</pre>';*/
+		    //$uid = $ig->people->getUserIdForName('wild.feather');
+		    if (false == false || false > '112512')
+		    	echo 'blas';
 		    /*//Follow
 		    //$followResponse = $ig->people->follow($uid);
 
