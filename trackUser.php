@@ -23,15 +23,21 @@
 		$checkResult = $user;
 		$userSnapshot = getUserSnapshot($user['username']);
 		if ($user['private']){
-			//If user is private it means we have sent him a private message
+			//If user is private it means we have sent him a private message and a follow request
 			foreach ($threads as $key => $value) {
-				if (strcmp($user['username'],$value->users[0]->username)==0)
+				if (strcmp($user['username'],$value->users[0]->username)==0) {
 					if (strcmp($value->users[0]->last_permanent_item->user_id,$user['_id'])==0) {
+						$checkResults['messageResponse'] = true;
 						$timestamp = $value->users[0]->last_permanent_item->timestamp;
 						$text = $value->users[0]->last_permanent_item->text;
 						//We might use external library to analyze the text - or use analyze data
 					}
+					else
+						$checkResults['messageResponse'] = true;
+				}
 			}
+			//See if the follow request was approved
+			$checkResults['followApproved'] = count($userSnapshot['edge_media_collections']) > 0 ? true : false;
 		}
 		//Changes in number of followers, following or Media
 		foreach ($user['counts'] as $key => $value) {
@@ -104,7 +110,13 @@
 		if (!isset($checkResult['actionRate']))
 			$checkResult['actionRate'] = array();
 		array_push($checkResult['actionRate'],$actionRate);
-		pushData('trackedUsers', $checkResult)
+		if (count($checkResult['actionRate'] == 3))
+			$checkResult['trackingResults'] = calculateResults($checkResult['actionRate']);
+		pushData('trackedUsers', $checkResult);
+	}
+
+	function calculateResults($results) {
+		//We will enter an algorithm to calculate the results
 	}
 
 ?>
