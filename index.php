@@ -31,7 +31,7 @@
 	
 	$resultArray = array(
 					'result' => 0,
-					'resultText' = 'OK'
+					'resultText' => 'OK'
 				);
 ?>
 

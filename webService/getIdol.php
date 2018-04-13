@@ -1,6 +1,6 @@
 <?php
 	try{
-		$url = 'http://www.instagram.com/'.$idolName.'/?__a=1';
+		$url = 'http://www.instagram.com/'.$idolName.'/';
 		$ch = curl_init($url);
 		curl_setopt($ch, CURLOPT_HEADER,0);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -8,19 +8,30 @@
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 		$response = curl_exec($ch);
 		echo curl_error($ch);
+		$http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);
-		$responseArray = json_decode($response,true);
-		$resultArray['data'] = array(
-									'userID' 			=> $responseArray['graphql']['user']['id'],
-									'username' 			=> $responseArray['graphql']['user']['username'],
-									'fullName' 			=> $responseArray['graphql']['user']['full_name'] != '' ? $responseArray['graphql']['user']['full_name'] : false,
-									'profilePicture' 	=> !is_null($responseArray['graphql']['user']['profile_pic_url_hd']) ? $responseArray['graphql']['user']['profile_pic_url_hd'] : false,
+		if($http=="200") {
+			$doc = new DOMDocument();
+			$doc->loadHTML($response);
+			$xpath = new DOMXPath($doc);
+			//Find JS to remove it
+			$js = $xpath->query('//body/script[@type="text/javascript"]')->item(0)->nodeValue;
+			$start = strpos($js, '{');
+			$end = strrpos($js, ';');
+			$json = substr($js, $start, $end - $start);
+			$responseArray = json_decode($json, true);
+			$resultArray['data'] = array(
+									'userID' 			=> $responseArray['entry_data']['ProfilePage'][0]['graphql']['user']['id'],
+									'username' 			=> $responseArray['entry_data']['ProfilePage'][0]['graphql']['user']['username'],
+									'fullName' 			=> $responseArray['entry_data']['ProfilePage'][0]['graphql']['user']['full_name'] != '' ? $responseArray['entry_data']['ProfilePage'][0]['graphql']['user']['full_name'] : false,
+									'profilePicture' 	=> !is_null($responseArray['entry_data']['ProfilePage'][0]['graphql']['user']['profile_pic_url']) ? $responseArray['entry_data']['ProfilePage'][0]['graphql']['user']['profile_pic_url'] : false,
 									'counts' => array(
-											'Followers' => $responseArray['graphql']['user']['edge_followed_by']['count'],
-											'Following' => $responseArray['graphql']['user']['edge_follow']['count'], 
-											'Media' => $responseArray['graphql']['user']['edge_owner_to_timeline_media']['count']
+											'Followers' => $responseArray['entry_data']['ProfilePage'][0]['graphql']['user']['edge_followed_by']['count'],
+											'Following' => $responseArray['entry_data']['ProfilePage'][0]['graphql']['user']['edge_follow']['count'], 
+											'Media' => $responseArray['entry_data']['ProfilePage'][0]['graphql']['user']['edge_owner_to_timeline_media']['count']
 										)
 									);
+		}
 	}
 	catch (Exception $e) {
 		$resultArray['result'] = 1;
