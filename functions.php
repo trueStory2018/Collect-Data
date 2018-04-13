@@ -273,7 +273,8 @@
 	}
 
 	function getUserSnapshot($username) {
-		$url = 'http://www.instagram.com/'.$username.'/?__a=1';
+		$json = '';
+		$url = 'http://www.instagram.com/'.$idolName.'/';
 		$ch = curl_init($url);
 		curl_setopt($ch, CURLOPT_HEADER,0);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -281,7 +282,18 @@
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 		$response = curl_exec($ch);
 		echo curl_error($ch);
+		$http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);
-		return json_decode($response,true);
+		if($http=="200") {
+			$doc = new DOMDocument();
+			$doc->loadHTML($response);
+			$xpath = new DOMXPath($doc);
+			//Find JS to remove it
+			$js = $xpath->query('//body/script[@type="text/javascript"]')->item(0)->nodeValue;
+			$start = strpos($js, '{');
+			$end = strrpos($js, ';');
+			$json = substr($js, $start, $end - $start);
+		}
+		return json_decode($json,true);
 	}
 ?>

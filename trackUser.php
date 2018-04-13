@@ -44,16 +44,16 @@
 		//Changes in number of followers, following or Media
 		foreach ($user['counts'] as $key => $value) {
 			if (strcmp($key,'Followers')==0) {
-				$difference = abs($value - $userSnapshot['graphql']['user']['edge_followed_by']['count']);
-				$checkResult['counts'][$key] = $userSnapshot['graphql']['user']['edge_followed_by']['count']);
+				$difference = abs($value - $userSnapshot['entry_data']['ProfilePage'][0]['graphql']['user']['edge_followed_by']['count']);
+				$checkResult['counts'][$key] = $userSnapshot['entry_data']['ProfilePage'][0]['graphql']['user']['edge_followed_by']['count']);
 			}
 			if (strcmp($key,'Following')==0){
-				$difference = abs($value - $userSnapshot['graphql']['user']['edge_follow']['count']);
-				$checkResult['counts'][$key] = $userSnapshot['graphql']['user']['edge_follow']['count']);
+				$difference = abs($value - $userSnapshot['entry_data']['ProfilePage'][0]['graphql']['user']['edge_follow']['count']);
+				$checkResult['counts'][$key] = $userSnapshot['entry_data']['ProfilePage'][0]['graphql']['user']['edge_follow']['count']);
 			}
 			if (strcmp($key,'Media')==0){
-				$difference = abs($value - $userSnapshot['graphql']['user']['edge_owner_to_timeline_media']['count']);
-				$checkResult['counts'][$key] = $userSnapshot['graphql']['user']['edge_owner_to_timeline_media']['count']);
+				$difference = abs($value - $userSnapshot['entry_data']['ProfilePage'][0]['graphql']['user']['edge_owner_to_timeline_media']['count']);
+				$checkResult['counts'][$key] = $userSnapshot['entry_data']['ProfilePage'][0]['graphql']['user']['edge_owner_to_timeline_media']['count']);
 			}
 			//Now we rate the difference
 			//We check if it's not the first run
