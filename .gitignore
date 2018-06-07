@@ -1,1 +1,4 @@
+#don't push config params
 config/
+#don't push logs
+**/logs

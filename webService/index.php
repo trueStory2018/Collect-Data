@@ -12,12 +12,12 @@
 
 	
 	if (strcmp($request, 'getIdol')==0) {
-		$idolName = $_POST['idolName'];
+		$idolNames = $_POST['idolNames'];
 		include_once "getIdol.php";
 	}
 
 	else if (strcmp($request, 'insertIdol')==0) {
-		$uid = $_POST['uid'];
+		$username = $_POST['username'];
 		include_once "insertIdol.php";
 	}
 

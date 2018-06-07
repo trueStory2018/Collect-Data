@@ -1,17 +1,19 @@
 <?php
 	$maxUsers = 6000;
 	$loop = 0;
+	$idols = array(1);
 	if (!empty($idols)){
 		foreach ($idols as $idol) {
-			try {
-			    $idolId = $idol['_id'];
-			    $idolFollowers = getIdols($idolId);
-			    foreach ($idolFollowers as $follower) {
-			    	collectData($uid,false,$innerDebug);
-			    }			
-			} catch (\Exception $e) {
-			    echo 'Something went wrong: '.$e->getMessage()."\n";
-			}
+		    //$idolId = $idol['_id']
+		    //$idolFollowers = getIdols($idolId);
+		    $idolFollowers = array('4226040806','331773654','2250053','6789415717','7045821214','5730120587','263008976','20788692','5515650910','1742241265','22380436','11945540','49898631','179247337','16044501','31928725','192702521','212015957','4492294372','6200764349','23301879','7359670360','3996596720','2296621124','7369367919','5809128747','3284225408','5499798409','7322887095','5623552726','7489858276','7485314204','7488716872','3511812359','7492781525');
+		    foreach ($idolFollowers as $follower) {
+		    	try {
+		    		collectData($ig, $follower,false,true);
+		    	} catch (\Exception $e) {
+				    echo 'Something went wrong: '.$e->getMessage()."\n";
+				}
+		    }			
 		}
 	}	
 
