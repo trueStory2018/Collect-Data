@@ -190,17 +190,24 @@
     unset($key);
     foreach ($tempResults as $userId => $array) {
     	$overallActions = 0;
-    	if (count($array) == 1)
-    		$earliestTimestamp = $limit;
-    	else
-    		$earliestTimestamp = '0';
     	foreach ($array as $timestamp => $actions ) {
     		//We will calculate amount of actions according to amount of time
     		$overallActions+=$actions;
-    		if ($earliestTimestamp != '0')
-    			$earliestTimestamp = $timestamp;
        	}
-       	$actionRate = round($overallActions / abs(($now - $earliestTimestamp)/60),2);
+       	//Since the values are descending - the first is the latest and the last is the earlies
+       	if (count($array) == 1) {
+       		reset($array);
+       		$earliestTimestamp = $array[key($array)];
+       		$latestTimestamp = $now;
+       	}
+       	//Get the latest timestamp
+       	else {
+       		reset($array);
+       		$latestTimestamp = $array[key($array)];
+       		end($array);
+       		$earliestTimestamp = $array[key($array)];
+       	}
+       	$actionRate = round($overallActions / abs(($latestTimestamp - $earliestTimestamp)/60),2);
        	//If for some reason results was not created
        	$key = 0;
        	foreach ($usersToTrack as $innerKey => $value) {
