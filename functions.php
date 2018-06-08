@@ -303,8 +303,10 @@
 		return json_decode($response,true);
 	}
 
-	function getUserSnapshot($username,$ig = null, $uid = false) {
+	function getUserSnapshot($username,$ig = null, $uid = false,$private = false) {
 		try {
+			if ($private)
+				throw new Exception('Private user, collecting from IG');
 			$json = '';
 			$url = 'http://www.instagram.com/'.$username.'/';
 			$ch = curl_init($url);
@@ -330,8 +332,9 @@
 				throw new Exception ('Empty json');
 		}
 		catch (Exception $e) {
-			echo PHP_EOL.$e->getMessage().PHP_EOL;
-			sleep(5);
+			echo $e->getMessage().PHP_EOL;
+			if (!$private)
+				sleep(5);
 			//Backup in case we can't get snapshot
 			if ($uid && !is_null($ig)) {
 				$response = json_decode(json_encode($ig->people->getInfoById($uid)));

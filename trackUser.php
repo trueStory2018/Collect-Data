@@ -27,14 +27,14 @@
 		echo "Can't access inbox: ".$e->getMessage();
 	}
 	$usersToTrack = getTrackedUsers();
-	$startTime = microtime(true);
-	echo 'Starting '.$startTime.PHP_EOL;
+	echo 'Starting '.$now.PHP_EOL;
 	
 	foreach ($usersToTrack as $key => $user) {
-		echo 'Checking results for '.$user['username'].PHP_EOL;
-		echo (microtime(true) - $startTime).PHP_EOL;
 
-		$userSnapshot = getUserSnapshot($user['username'],$ig,$user['_id']);
+		echo 'Checking results for '.$user['username'].PHP_EOL;
+		echo (microtime(true) - $now).' seconds'.PHP_EOL;
+
+		$userSnapshot = getUserSnapshot($user['username'],$ig,$user['_id'],$user['private']);
 		if (empty($userSnapshot)) {
 			echo 'Error: Empty snapshot'.PHP_EOL;
 			continue;
@@ -59,10 +59,10 @@
 			}
 		}
 		catch (exception $e){
-			echo "Exception thrown after ".(microtime(true)-$startTime).PHP_EOL.'Message: '.$e->getMessage().PHP_EOL;
+			echo "Exception thrown after ".(microtime(true)-$now).PHP_EOL.'Message: '.$e->getMessage().PHP_EOL;
 		}
 		//Changes in number of followers, following or Media
-		$difference = 0;
+		$difference = intval(0);
 		foreach ($user['counts'] as $innerKey => $value) {
 			if (strcmp($innerKey,'Followers')==0) {
 				$usersToTrack[$key]['counts'][$innerKey] = $userSnapshot['entry_data']['ProfilePage'][0]['graphql']['user']['edge_followed_by']['count'];
@@ -80,15 +80,13 @@
 		array_push($usersToTrack[$key]['results'],$difference);
 		sleep(5);
 	}
-	
 	//Now we will see the updates from all of the users we follow and try to estimate their action rate
 	$maxId = null;
 	$tempResults = array();
 	//Get up-to-date user status
+	echo 'Colleting timeline results'.PHP_EOL;
+	echo (microtime(true) - $now).' seconds'.PHP_EOL;
 	do {
-		if ($debug) {
-			echo (microtime(true) - $time_start).' seconds'.PHP_EOL;
-		}
         // Request the page corresponding to maxId.
         $response = $ig->people->getFollowingRecentActivity($maxId);
         //Adding info to tracking results
@@ -173,43 +171,45 @@
     } while ($earliestTimestamp > $limit);
     unset($key);
     foreach ($tempResults as $userId => $array) {
-    	$overallActions = 0;
-    	foreach ($array as $timestamp => $actions ) {
-    		//We will calculate amount of actions according to amount of time
-    		$overallActions+=$actions;
-       	}
-       	//Since the values are descending - the first is the latest and the last is the earlies
-       	if (count($array) == 1) {
-       		reset($array);
-       		$earliestTimestamp = $array[key($array)];
-       		$latestTimestamp = $now;
-       	}
-       	//Get the latest timestamp
-       	else {
-       		reset($array);
-       		$latestTimestamp = $array[key($array)];
-       		end($array);
-       		$earliestTimestamp = $array[key($array)];
-       	}
-       	$actionRate = round($overallActions / abs(($latestTimestamp - $earliestTimestamp)/60),2);
-       	//If for some reason results was not created
-       	$key = 0;
+    	//Find the relevant user
+    	$key = -1;
        	foreach ($usersToTrack as $innerKey => $value) {
        		if ($value['_id'] == $userId) {
        			$key = $innerKey;
        			break;
        		}
        	}
-       	//We will pop the last result to get the most recent result
+       	if ($key == -1) 
+       		//Error
+       		continue;
+    	$overallActions = 0.00;
+    	//We will pop the last result to get the most recent amount of actions (0 is default)
        	if (!empty($usersToTrack[$key]['results']))
-       		$actionRate += array_pop($usersToTrack[$key]['results']);
+       		$overallActions += array_pop($usersToTrack[$key]['results']);
+
+    	foreach ($array as $actions ) {
+    		//We will calculate amount of actions according to amount of time
+    		$overallActions+=$actions;
+       	}
+       	//Since the values are descending - the first is the latest and the last is the earlies
+       	if (count($array) == 1) {
+       		reset($array);
+       		$earliestTimestamp = key($array);
+       		$latestTimestamp = $now;
+       	}
+       	//Get the latest timestamp
+       	else {
+       		reset($array);
+       		$latestTimestamp = key($array);
+       		end($array);
+       		$earliestTimestamp = key($array);
+       	}
+       	$actionRate = round($overallActions / abs(($latestTimestamp - $earliestTimestamp)/3600),2);
        	array_push($usersToTrack[$key]['results'],$actionRate);
-       	//Push results to DB
-       	pushData('trackedUsers', $usersToTrack[$userId]);
     }
 
 	//Now finally we go over all the up-to-date results after checking snapshots, messages and activity and push the final results to our users table
-	if ($debug) {
+	 if ($debug) {
 		$filename = 'logs/log '.intval(microtime(true)).'.json';
 		$fp = fopen($filename, 'w+');
 		fwrite($fp, "[");
@@ -238,6 +238,11 @@
 			}
 		}
 		else {
+			//FailSafe for first run
+	       	if (empty($usersToTrack[$key]['results']))
+	       		array_push($usersToTrack[$key]['results'],0.00);
+	       	//Push results to DB
+       		pushData('trackedUsers', $usersToTrack[$key]);
 			pushData('users',calculateResults($trackedUser),$trackedUser['_id'],'analysisResults');
 		}
 		if ($debug) {
@@ -252,7 +257,7 @@
 		fclose($fp);
 	}
 
-	echo 'Overall: '.(microtime(true) - $startTime);
+	echo 'Overall: '.(microtime(true) - $now);
 
 	function calculateResults($user) {
 		//We will take results from analysis and compare with the tracking
@@ -263,7 +268,12 @@
 		$user['actionRate'] = 0;
 		foreach ($user['results'] as $actions)
 			$user['actionRate'] += $actions;
-
+		if (count($user['results'] > 2)) {
+			if ($user['private'] && $user['followApproved'])
+				$user['actionRate'] -= 10;
+			if ($user['private'] && $user['messageResponse'])
+				$user['actionRate'] -= 10;
+		}
 		if ($user['counts']['followers'] <= 1000) {
 			//If no action then the analysis results will determine
 			if ($user['actionRate'] == 0) {
