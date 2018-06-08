@@ -2,7 +2,7 @@
 	require __DIR__.'/../vendor/autoload.php';
 	include 'functions.php';
 	include_once '/config/params.php';
-	$debug = false;
+	$debug = true;
 	$IGdebug = false;
 	$truncatedDebug = false;
 	$beginning = microtime(true);
@@ -36,11 +36,6 @@
 	echo 'Starting '.$startTime.PHP_EOL;
 	
 	foreach ($usersToTrack as $key => $user) {
-		if ($key>0 && $debug){
-			$fp = fopen($filename, 'a+');
-			fwrite($fp, ",");
-			fclose($fp);
-		}
 		echo 'Checking results for '.$user['username'].PHP_EOL;
 		echo (microtime(true) - $startTime).PHP_EOL;
 
@@ -220,6 +215,11 @@
 
 	//Now finally we go over all the up-to-date results after checking snapshots, messages and activity and push the final results to our users table
 	foreach ($usersToTrack as $key => $trackedUser) {
+		if ($key>0 && $debug){
+			$fp = fopen($filename, 'a+');
+			fwrite($fp, ",");
+			fclose($fp);
+		}
 		if (count($trackedUser['results']) >= 3 || $trackedUser['timestamp'] < strtotime('-3 day',$now)){
 			$user = array(
 				'_id' 				=>	$trackedUser['_id'],
