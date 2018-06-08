@@ -2,17 +2,12 @@
 	require __DIR__.'/../vendor/autoload.php';
 	include 'functions.php';
 	include_once '/config/params.php';
-	$debug = true;
+	$debug = false;
 	$IGdebug = false;
 	$truncatedDebug = false;
 	$beginning = microtime(true);
 	$ig = new \InstagramAPI\Instagram($IGdebug, $truncatedDebug);
-	if ($debug) {
-		$filename = 'logs/log '.intval(microtime(true)).'.json';
-		$fp = fopen($filename, 'w+');
-		fwrite($fp, "[");
-		fclose($fp);
-	}
+	
 	$now = microtime(true);
 	$limit = strtotime('-1 day',$now);
 	
@@ -214,6 +209,12 @@
     }
 
 	//Now finally we go over all the up-to-date results after checking snapshots, messages and activity and push the final results to our users table
+	if ($debug) {
+		$filename = 'logs/log '.intval(microtime(true)).'.json';
+		$fp = fopen($filename, 'w+');
+		fwrite($fp, "[");
+		fclose($fp);
+	}
 	foreach ($usersToTrack as $key => $trackedUser) {
 		if ($key>0 && $debug){
 			$fp = fopen($filename, 'a+');
