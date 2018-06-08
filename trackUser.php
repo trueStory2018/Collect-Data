@@ -6,7 +6,7 @@
 	$IGdebug = false;
 	$truncatedDebug = false;
 	$beginning = microtime(true);
-	$ig = new \InstagramAPI\Instagram($debug, $truncatedDebug);
+	$ig = new \InstagramAPI\Instagram($IGdebug, $truncatedDebug);
 	if ($debug) {
 		$filename = 'logs/log '.intval(microtime(true)).'.json';
 		$fp = fopen($filename, 'w+');
