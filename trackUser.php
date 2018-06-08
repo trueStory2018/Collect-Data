@@ -273,6 +273,8 @@
 				$user['actionRate'] -= 10;
 			if ($user['private'] && $user['messageResponse'])
 				$user['actionRate'] -= 10;
+			if ($user['actionRate'] < 0)
+				$user['actionRate'] = 0;
 		}
 		if ($user['counts']['followers'] <= 1000) {
 			//If no action then the analysis results will determine
