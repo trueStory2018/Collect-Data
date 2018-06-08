@@ -6,12 +6,12 @@
 	$truncatedDebug = false;
 	$beginning = microtime(true);
 	$ig = new \InstagramAPI\Instagram($debug, $truncatedDebug);
-	$innerDebug = isset($_POST['debug']) ? $_POST['debug'] : false;
-	$filename = 'logs/log '.intval(microtime(true)).'.json';
-	$fp = fopen($filename, 'w+');
-	fwrite($fp, "[");
-	fclose($fp);
-	$debugArr = array();
+	if ($debug) {
+		$filename = 'logs/log '.intval(microtime(true)).'.json';
+		$fp = fopen($filename, 'w+');
+		fwrite($fp, "[");
+		fclose($fp);
+	}
 	$now = microtime(true);
 	$limit = strtotime('-1 day',$now);
 	
@@ -35,7 +35,7 @@
 	echo 'Starting '.$startTime.PHP_EOL;
 	
 	foreach ($usersToTrack as $key => $user) {
-		if ($key>0){
+		if ($key>0 && $debug){
 			$fp = fopen($filename, 'a+');
 			fwrite($fp, ",");
 			fclose($fp);
@@ -44,9 +44,10 @@
 		echo (microtime(true) - $startTime).PHP_EOL;
 
 		$userSnapshot = getUserSnapshot($user['username'],$ig,$user['_id']);
-		if (empty($userSnapshot))
+		if (empty($userSnapshot)) {
+			echo 'Error: Empty snapshot'.PHP_EOL;
 			continue;
-		$debugArr['Snapshot'] = $userSnapshot;
+		}
 		try{
 			if ($user['private']){
 				//If user is private it means we have sent him a private message and a follow request
@@ -86,14 +87,6 @@
 			}
 		}
 		array_push($usersToTrack[$key]['results'],$difference);
-
-		//Calculate amount in time
-		$debugArr['latestTS'] = $now;
-		$debugArr['earliestTS'] = $limit;
-		$debugArr['checkResult'] = $usersToTrack[$key];
-		$fp = fopen($filename, 'a+');
-		fwrite($fp, json_encode($debugArr));
-		fclose($fp);
 		sleep(5);
 	}
 	
@@ -223,9 +216,6 @@
        	//Push results to DB
        	pushData('trackedUsers', $usersToTrack[$userId]);
     }
-	$fp = fopen($filename, 'a+');
-	fwrite($fp, json_encode($tempResults)."]");
-	fclose($fp);
 
 	//Now finally we go over all the up-to-date results after checking snapshots, messages and activity and push the final results to our users table
 	foreach ($usersToTrack as $key => $trackedUser) {
@@ -238,10 +228,26 @@
 			//Push final results to users table and delete the user from trackedUsers so we will not track him again
 			pushData('users',$user);
 			pushData('trackedUsers',array(),$user['_id'],'delete');
+			try {
+				$ig->people->unfollow($uid);
+			}
+			catch (Exception $e) {
+				echo "Can't unfollow user " . $trackedUser['username'] . ': ' .$e->getMessage() . "\n";
+			}
 		}
 		else {
 			pushData('users',calculateResults($trackedUser),$trackedUser['_id'],'analysisResults');
 		}
+		if ($debug) {
+			$fp = fopen($filename, 'a+');
+			fwrite($fp, json_encode($trackedUser));
+			fclose($fp);
+		}
+	}
+	if ($debug) {
+		$fp = fopen($filename, 'a+');
+		fwrite($fp, ']');
+		fclose($fp);
 	}
 
 	echo 'Overall: '.(microtime(true) - $startTime);
