@@ -3,6 +3,7 @@
 	include 'functions.php';
 	include_once '/config/params.php';
 	$debug = false;
+	$IGdebug = false;
 	$truncatedDebug = false;
 	$beginning = microtime(true);
 	$ig = new \InstagramAPI\Instagram($debug, $truncatedDebug);
