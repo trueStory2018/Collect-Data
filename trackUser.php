@@ -240,7 +240,7 @@
 		       		array_push($usersToTrack[$key]['results'],0.00);
 		       	//Push results to DB
 	       		pushData('trackedUsers', $usersToTrack[$key]);
-				pushData('users',calculateResults($trackedUser),$trackedUser['_id'],'analysisResults');
+				pushData('users',calculateResults($trackedUser)['certainty']/0.2,$trackedUser['_id'],'analysisResults');
 			}
 			if ($debug) {
 				$fp = fopen($filename, 'a+');
@@ -264,7 +264,7 @@
 		//We will take results from analysis and compare with the tracking
 		$calculateResults = array('bot'	=> false, 'certainty' => 0.00);
 		$analysedUser = getUsers($user['_id']);
-		$analysisResults = ($analysedUser['analysisResults'][0])*20/100;
+		$analysisResults = ($analysedUser['analysisResults'][0])*0.2;
 		//Combine all of the actions together
 		$user['actionRate'] = 0;
 		foreach ($user['results'] as $actions)
