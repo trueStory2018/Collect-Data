@@ -46,7 +46,11 @@
 			
 			array_push($followerResults, array('username'			=>	$response['username'],
 												'profilePicture'	=>	$response['profilePicture'],
-												'results'			=>	isset($response['trackingResults']) ? $response['trackingResults'] : $response['analysisResults']));
+												'results'			=>	isset($response['trackingResults']) ? $response['trackingResults'] : array(
+																		'bot' => $response['analysisResults'] > 2 ? true : false,
+																		'certainty' => $response['analysisResults']*0.2
+																		)
+												);
 		}
 		$resultArray['data']['results'] = $followerResults;
 	}

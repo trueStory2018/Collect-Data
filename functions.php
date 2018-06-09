@@ -63,7 +63,7 @@
 			}
 		}
 		//initial insert
-		//pushData('users',$person);
+		pushData('users',$person);
 		//Push also to trackedUsers - since we will be tracking all users
 		$trackingInfo = array(
 			'_id' 		=> $person['_id'],
@@ -137,9 +137,9 @@
 		}
 		else {
 			//Try to send him/her a message, and ask him/her to accept our follow request
-			 $recepients['users'] = array();
+			$recepients['users'] = array();
 		    array_push($recepients['users'], $uid);
-		   $ig->direct->sendText($recepients,'Hello '.$person['fullName'].'! We at trueStory would love it if you accept our follow request');
+		    $ig->direct->sendText($recepients,'Hello '.$person['fullName'].'! We at trueStory would love it if you accept our follow request');
 		}
 	    if ($debug){
 	    	$time_end = microtime(true);
