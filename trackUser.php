@@ -164,6 +164,7 @@
         		break;
     	}
         sleep(5);
+        $maxId = $response->getNextMaxId();
     } while ($earliestTimestamp > $limit);
     unset($key);
     foreach ($tempResults as $userId => $array) {
@@ -219,11 +220,7 @@
 				fclose($fp);
 			}
 			if (count($trackedUser['results']) >= 3 || $trackedUser['timestamp'] < strtotime('-3 day',$now)){
-				$user = array(
-					'_id' 				=>	$trackedUser['_id'],
-					'username' 			=>	$trackedUser['username'],
-					'trackingResults'	=>	calculateResults($trackedUser)
-				);
+				$user = calculateResults($trackedUser,true);
 				//Push final results to users table and delete the user from trackedUsers so we will not track him again
 				pushData('users',$user);
 				pushData('trackedUsers',array(),$user['_id'],'delete');
@@ -238,9 +235,11 @@
 				//FailSafe for first run
 		       	if (empty($usersToTrack[$key]['results']))
 		       		array_push($usersToTrack[$key]['results'],0.00);
+		       	$user = $trackedUser;
+		       	$user['certainty'] = calculateResults($trackedUser);
 		       	//Push results to DB
 	       		pushData('trackedUsers', $usersToTrack[$key]);
-				pushData('users',calculateResults($trackedUser)['certainty']/0.2,$trackedUser['_id'],'analysisResults');
+				pushData('users',calculateResults($trackedUser)['certainty'],$trackedUser['_id'],'analysisResults');
 			}
 			if ($debug) {
 				$fp = fopen($filename, 'a+');
@@ -260,11 +259,14 @@
 
 	echo 'Overall: '.(microtime(true) - $now);
 
-	function calculateResults($user) {
+		#if lastRun set to true - this function will return an array of the user to push to DB
+		#if set to false - will return calculation only
+	function calculateResults($user,$lastRun = false) {
 		//We will take results from analysis and compare with the tracking
 		$calculateResults = array('bot'	=> false, 'certainty' => 0.00);
-		$analysedUser = getUsers($user['_id']);
-		$analysisResults = ($analysedUser['analysisResults'][0])*0.2;
+		$analysedUser = getUsers($user['_id'])[0];
+		//If w have not put this variable yet, we will add the first analysis
+		$analysisResults = isset($analysedUser['analysisResults']) ? $analysedUser['analysisResults'] : makeFirstAnalysis($analysedUser);
 		//Combine all of the actions together
 		$user['actionRate'] = 0;
 		foreach ($user['results'] as $actions)
@@ -279,59 +281,102 @@
 		}
 		//If no action then the analysis results will determine
 		if ($user['actionRate'] == 0) {
-			$certainty = $analysisResults;
+			$user['actionRate'] += $analysisResults;
+		}
+		//If still no actions
+		if ($analysedUser['isSuspicious'] && $user['actionRate'] == 0){
+			$certainty = 100;
 		}
 		else{
 			//Prevent division by zero and keep normalization
-			if ($user['counts']['media'] == 0)
-				$user['counts']['media']++;
-			if ($user['counts']['followers'] == 0)
-				$user['counts']['followers']++;
-			if ($user['counts']['following'] == 0)
-				$user['counts']['following']++;
+			if ($user['counts']['Media'] == 0)
+				$user['counts']['Media']++;
+			if ($user['counts']['Followers'] == 0)
+				$user['counts']['Followers']++;
+			if ($user['counts']['Following'] == 0)
+				$user['counts']['Following']++;
+			if ($user['actionRate'] == 0)
+				$user['actionRate']++;
 
-			if ($user['counts']['followers'] <= 1000) {
+			if ($user['counts']['Followers'] <= 1000) {
 				if ($user['actionRate'] < 75) {
-					//Ratio: how many actions * (media / followers) or (followers / media) * (followers / following) or (following / followers)
-					$certainty = $user['actionRate'] * ($user['counts']['media'] > $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['media']) : ($user['counts']['media'] / $user['counts']['followers']));
-					$certainty *= $user['counts']['following'] < $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['following']) : ($user['counts']['following'] / $user['counts']['followers']);
+					//Ratio: how many actions * (media / Followers) or (Followers / media) * (Followers / Following) or (Following / Followers)
+					$certainty = $user['actionRate'] * ($user['counts']['Media'] > $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Followers']));
+					$certainty += $user['counts']['Following'] > $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Following']) : ($user['counts']['Following'] / $user['counts']['Followers']);
+					$certainty *= $user['counts']['Following'] > $user['counts']['Media'] ? ($user['counts']['Following']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Following']);
 				}
 				else {
-					//Ratio: We will give more emphassis to followers
-					$certainty = $user['actionRate'] * ($user['counts']['media'] < $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['media']) : ($user['counts']['media'] / $user['counts']['followers']));
-					$certainty *= $user['counts']['following'] < $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['following']) : ($user['counts']['following'] / $user['counts']['followers']);
+					//Ratio: We will give more emphassis to Followers
+					$certainty = $user['actionRate'] * ($user['counts']['Media'] < $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Followers']));
+					$certainty += $user['counts']['Following'] < $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Following']) : ($user['counts']['Following'] / $user['counts']['Followers']);
+					$certainty *= $user['counts']['Following'] < $user['counts']['Media'] ? ($user['counts']['Following']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Following']);
 				}
 			}
-			else if ($user['counts']['followers'] > 1000 && $user['counts']['followers'] <= 10000) {
+			else if ($user['counts']['Followers'] > 1000 && $user['counts']['Followers'] <= 10000) {
 				if ($user['actionRate'] < 350) {
-					//Ratio: how many actions * (media / followers) or (followers / media) * (followers / following) or (following / followers)
-					$certainty = $user['actionRate'] * ($user['counts']['media'] > $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['media']) : ($user['counts']['media'] / $user['counts']['followers']));
-					$certainty *= $user['counts']['following'] < $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['following']) : ($user['counts']['following'] / $user['counts']['followers']);
+					//Ratio: how many actions * (media / Followers) or (Followers / media) * (Followers / Following) or (Following / Followers)
+					$certainty = $user['actionRate'] * ($user['counts']['Media'] > $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Followers']));
+					$certainty += $user['counts']['Following'] > $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Following']) : ($user['counts']['Following'] / $user['counts']['Followers']);
+					$certainty *= $user['counts']['Following'] > $user['counts']['Media'] ? ($user['counts']['Following']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Following']);
 				}
 				else {
-					//Ratio: We will give more emphassis to followers
-					$certainty = $user['actionRate'] * ($user['counts']['media'] < $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['media']) : ($user['counts']['media'] / $user['counts']['followers']));
-					$certainty *= $user['counts']['following'] < $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['following']) : ($user['counts']['following'] / $user['counts']['followers']);
+					//Ratio: We will give more emphassis to Followers
+					$certainty = $user['actionRate'] * ($user['counts']['Media'] < $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Followers']));
+					$certainty += $user['counts']['Following'] < $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Following']) : ($user['counts']['Following'] / $user['counts']['Followers']);
+					$certainty *= $user['counts']['Following'] < $user['counts']['Media'] ? ($user['counts']['Following']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Following']);
 				}
 			}
-			else if ($user['counts']['followers'] > 10000 && $user['counts']['followers'] <= 100000) {
+			else if ($user['counts']['Followers'] > 10000) {
 				if ($user['actionRate'] < 650) {
-					//Ratio: how many actions * (media / followers) or (followers / media) * (followers / following) or (following / followers)
-					$certainty = $user['actionRate'] * ($user['counts']['media'] > $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['media']) : ($user['counts']['media'] / $user['counts']['followers']));
-					$certainty *= $user['counts']['following'] < $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['following']) : ($user['counts']['following'] / $user['counts']['followers']);
+					//Ratio: how many actions * (media / Followers) or (Followers / media) * (Followers / Following) or (Following / Followers)
+					$certainty = $user['actionRate'] * ($user['counts']['Media'] > $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Followers']));
+					$certainty += $user['counts']['Following'] > $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Following']) : ($user['counts']['Following'] / $user['counts']['Followers']);
+					$certainty *= $user['counts']['Following'] > $user['counts']['Media'] ? ($user['counts']['Following']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Following']);
 				}
 				else {
-					//Ratio: We will give more emphassis to followers
-					$certainty = $user['actionRate'] * ($user['counts']['media'] < $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['media']) : ($user['counts']['media'] / $user['counts']['followers']));
-					$certainty *= $user['counts']['following'] < $user['counts']['followers'] ? ($user['counts']['followers']/$user['counts']['following']) : ($user['counts']['following'] / $user['counts']['followers']);
+					//Ratio: We will give more emphassis to Followers
+					$certainty = $user['actionRate'] * ($user['counts']['Media'] < $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Followers']));
+					$certainty += $user['counts']['Following'] < $user['counts']['Followers'] ? ($user['counts']['Followers']/$user['counts']['Following']) : ($user['counts']['Following'] / $user['counts']['Followers']);
+					$certainty *= $user['counts']['Following'] < $user['counts']['Media'] ? ($user['counts']['Following']/$user['counts']['Media']) : ($user['counts']['Media'] / $user['counts']['Following']);
 				}
 			}
 		}
-		$certainty *= number_format($analysisResults,2,'.','');
-		if ($certainty > 0.5)
+		$certainty -= ($certainty * number_format($analysisResults,2,'.',''));
+		if ($certainty > 50) 
 			$calculateResults['bot'] = true;
+		else
+			$certainty = 100 - $certainty;
+		if ($certainty > 100) 
+			$certainty = 100;
 		$calculateResults['certainty'] = $certainty;
+		if ($lastRun) {
+			return array(
+					'_id' 						=>	$user['_id'],
+					'username' 					=>	$user['username'],
+					'trackingResults'			=>	array(
+							'isPrivate'					=>	$user['private'],
+							'isSuspicious'				=>	$analysedUser['isSuspicious'][0],
+							'isBot'						=>	$calculateResults['bot'],
+							'postVSfollowers'			=>	$analysedUser['postVSfollowers'][0],
+							'followingVSfollowers'		=>	$analysedUser['followingVSfollowers'][0],
+							'suspiciousName'			=>	$analysedUser['suspiciousName'][0],
+							'emptyProfile'				=>	$analysedUser['emptyProfile'][0],
+							'googleSRnumOfLinks'		=>	$analysedUser['googleSRnumOfLinks'][0],
+							'googleSRnumOfPages'		=>	$analysedUser['googleSRnumOfPages'][0],
+							'numOfUserTags'				=>	$analysedUser['numOfUserTags'][0],
+							'numOfMedia'				=>	$user['counts']['Media'],
+							'numOfFollowing'			=>	$user['counts']['Following'],
+							'numOfFollowers'			=>	$user['counts']['Followers'],
+							'certainty'					=>	$calculateResults['certainty']
+							)
+				);
+		}
 		return $calculateResults;
+	}
+
+	function makeFirstAnalysis($analysedUser) {
+		return $analysedUser['isSuspicious'][0] + $analysedUser['emptyProfile'][0] - $analysedUser['suspiciousName'][0] + (($analysedUser['googleSRnumOfLinks'][0] + $analysedUser['googleSRnumOfPages'][0])/2);
+
 	}
 
 ?>

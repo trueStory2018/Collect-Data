@@ -55,7 +55,8 @@
 		$resultArray['data']['results'] = $followerResults;
 	}
 	catch (Exception $e) {
-		echo $e->getMessage();
+		$resultArray['result'] = -1;
+		$resultArray['resultText'] = $e->getMessage();
 	}
 
 ?>

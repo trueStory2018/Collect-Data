@@ -285,7 +285,7 @@
 			$url.='?q={"_id":"'.$uid.'"}&';
 		else
 			$url.='?';
-		$url.='apiKey='.$GLOBALS['mlabApi'].'&';
+		$url.='apiKey='.$GLOBALS['mlabApi'];
 		
 		//Get all idols where no data has been collected for yet
 

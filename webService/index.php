@@ -26,11 +26,14 @@
 		include_once "getResults.php";
 	}
 
+	else if (strcmp($request, 'getTracking')){
+		include_once "getTracking";
+	}
+
 	else {
 		$resultArray['result'] = '-1';
 		$resultArray['resultText'] = 'Bad request';
 	}
-	
 
 	echo json_encode($resultArray);
 ?>
