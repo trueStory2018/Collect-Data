@@ -10,7 +10,8 @@
 							'lastModified' => microtime(true),
 							'collected' => false,
 							'profilePicture' => $resultArray[$username]['data']['profilePicture'],
-							'fullName'	=> $resultArray[$username]['data']['fullName'],
+							'fullName'		=> $resultArray[$username]['data']['fullName'],
+							'userName'		=> $username,
 							'selfFollow'	=>	isset($_POST['selfFollow']) ? $_POST['selfFollow'] : false
 						);
 			$ch = curl_init($url);

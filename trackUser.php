@@ -9,7 +9,7 @@
 	$ig = new \InstagramAPI\Instagram($IGdebug, $truncatedDebug);
 	
 	$now = microtime(true);
-	$limit = strtotime('-1 day',$now);
+	$limit = strtotime('-2 day',$now);
 	
 	try {
 	    $ig->login($username, $password);
@@ -224,12 +224,12 @@
 				//Push final results to users table and delete the user from trackedUsers so we will not track him again
 				pushData('users',$user);
 				pushData('trackedUsers',array(),$user['_id'],'delete');
-				try {
+				/*try {
 					$ig->people->unfollow($uid);
 				}
 				catch (Exception $e) {
 					echo "Can't unfollow user " . $trackedUser['username'] . ': ' .$e->getMessage() . "\n";
-				}
+				}*/
 			}
 			else {
 				//FailSafe for first run

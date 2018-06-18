@@ -22,6 +22,7 @@
 		curl_close($ch);
 		$data = json_decode($response,true);
 		if (!empty($data)) {
+			fputcsv($fp, array_keys($data[0]['trackingResults']));
 			foreach ($data as $row) {
 				fputcsv($fp, $row['trackingResults']);
 			}
