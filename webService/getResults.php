@@ -22,7 +22,9 @@
 		$resultArray['data'] = array('id' 				=> 	$user['_id'],
 									'username'			=>	$user['userName'],
 									'fullName'			=>	$user['fullName'],
-									'profilePicture'	=>	$user['profilePicture']);
+									'profilePicture'	=>	$user['profilePicture'],
+									'counts'			=>	$user['counts']
+									);
 		$followerResults = array();
 		foreach ($user['followers'][0] as $follower) {
 			$url = 'https://api.mlab.com/api/1/databases/analysis/collections/users';
@@ -43,12 +45,7 @@
 			$response = curl_exec($ch);
 			curl_close($ch);
 			$response = json_decode($response,true)[0];
-			array_push($followerResults, array('username'			=>	$response['username'],
-												'results'			=>	isset($response['trackingResults']) ? $response['trackingResults'] : array(
-																		'isBot' => $response['analysisResults'] > 50 ? true : false,
-																		'certainty' => $response['analysisResults']
-																		)
-												));
+			array_push($followerResults, $response);
 		}
 		$resultArray['data']['results'] = $followerResults;
 	}

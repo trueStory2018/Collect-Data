@@ -9,10 +9,11 @@
 			$data = array( '_id' => $resultArray[$username]['data']['userID'],
 							'lastModified' => microtime(true),
 							'collected' => false,
-							'profilePicture' => $resultArray[$username]['data']['profilePicture'],
-							'fullName'		=> $resultArray[$username]['data']['fullName'],
-							'userName'		=> $username,
-							'selfFollow'	=>	isset($_POST['selfFollow']) ? $_POST['selfFollow'] : false
+							'profilePicture'	=>	$resultArray[$username]['data']['profilePicture'],
+							'fullName'			=>  $resultArray[$username]['data']['fullName'],
+							'userName'			=>  $username,
+							'counts'			=>	$resultArray[$username]['data']['counts'],
+							'selfFollow'		=>	isset($_POST['selfFollow']) ? $_POST['selfFollow'] : false
 						);
 			$ch = curl_init($url);
 			curl_setopt($ch, CURLOPT_HTTPHEADER, array(

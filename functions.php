@@ -1,6 +1,6 @@
 <?php
-	function collectData($ig, $uid, $idol = false, $debug = false) {
-		$maxRuns = 8;
+	function collectData($ig, $uid, $idol = false, $debug = false, $deployment = true) {
+		$maxRuns = 20;
 		$time_start = microtime(true); 
 		if ($debug)
 			echo PHP_EOL.'Collecting data for '.$uid.PHP_EOL;
@@ -9,20 +9,18 @@
 			$person = array(
 				'_id' 				=> $uid,
 				'username' 			=> $response->user->username,
-				'fullName' 			=> $response->user->full_name != '' ? $response->user->full_name : false,
-				'private' 			=> $response->user->is_private != '' ? true : false, 
-				'verified' 			=> $response->user->is_verified != '' ? true : false,
-				'profilePicture' 	=> !is_null($response->user->hd_profile_pic_url_info->url) ? $response->user->hd_profile_pic_url_info->url : false,
-				'counts' 			=> array(
-										'Followers' => $response->user->follower_count,
-										'Following' => $response->user->following_count, 
-										'UserTags' => $response->user->usertags_count, 
-										'Media' => $response->user->media_count
-									),
-				'bio' 				=> $response->user->biography != '' ? $response->user->biography : false,
-				'city' 				=> false,
-				'publicEmail' 		=> false,
-				'birthday' 			=> false,
+				'fullName' 			=> $response->user->full_name,
+				'private' 			=> $response->user->is_private != '' ? 1 : 0, 
+				'verified' 			=> $response->user->is_verified != '' ? 1 : 0,
+				'profilePicture' 	=> !is_null($response->user->hd_profile_pic_url_info->url) ? $response->user->hd_profile_pic_url_info->url : '',
+				'Followers' 		=> $response->user->follower_count,
+				'Following' 		=> $response->user->following_count, 
+				'UserTags' 			=> $response->user->usertags_count, 
+				'countsm' 			=> $response->user->media_count,
+				'bio' 				=> $response->user->biography,
+				'city' 				=> '',
+				'publicEmail' 		=> '',
+				'birthday' 			=> '',
 				'media'				=> array()
 				);
 		}
@@ -62,19 +60,22 @@
 				echo "Can't Collect followers for " . $person['username'] . ': ' .$e->getMessage() . "\n";
 			}
 		}
-		//initial insert
-		pushData('users',$person);
-		//Push also to trackedUsers - since we will be tracking all users
-		$trackingInfo = array(
-			'_id' 		=> $person['_id'],
-			'username' 	=> $person['username'],
-			'private' 	=> $person['private'], 
-			'verified' 	=> $person['verified'],
-			'counts' 	=> $person['counts'],
-			'timestamp' => microtime(true),
-			'results'	=> array()
-			);
-	    pushData('trackedUsers',$trackingInfo);
+		if (!$deployment) {
+			//Push also to trackedUsers - since we will be tracking all users
+			$trackingInfo = array(
+				'_id' 		=> $person['_id'],
+				'username' 	=> $person['username'],
+				'private' 	=> $person['private'], 
+				'verified' 	=> $person['verified'],
+				'counts' 	=> array('Following'	=>	$person['Following'],
+									'Followers'		=>	$person['Followers'],
+									'Media'			=>	$person['countsm']
+								),
+				'timestamp' => microtime(true),
+				'results'	=> array()
+				);
+		    pushData('trackedUsers',$trackingInfo);
+		}
 		//////////////////Get MEDIA
 
 		$maxId = null;
@@ -133,13 +134,15 @@
 			    catch (Exception $e) {
 			    	echo "Can't collect media for user " . $person['username'] . ': ' .$e->getMessage() . "\n";
 			    }
-		    } while ($maxId !== null && $counter<$maxRuns);
+		    } while ($maxId !== null && $counter<2);
 		}
 		else {
 			//Try to send him/her a message, and ask him/her to accept our follow request
-			$recepients['users'] = array();
-		    array_push($recepients['users'], $uid);
-		    $ig->direct->sendText($recepients,'Hello '.$person['fullName'].'! We at trueStory would love it if you accept our follow request');
+			if (!$deployment) {
+				$recepients['users'] = array();
+			    array_push($recepients['users'], $uid);
+			    $ig->direct->sendText($recepients,'Hello '.$person['fullName'].'! We at trueStory would love it if you accept our follow request');
+			}
 		}
 	    if ($debug){
 	    	$time_end = microtime(true);
@@ -147,7 +150,17 @@
 			echo 'Total Execution Time: '.$execution_time.' seconds'.PHP_EOL;
 	    }
 	    if (!$idol){
-	    	pushData('users',$arr,$uid,'media');
+	    	$person['media'] = $arr;
+	    	if ($deployment) {
+		    	$user = isBot($person);
+		    	if (is_numeric($user['results']['isBot']) && is_numeric($user['results']['certainty']))
+		    		pushData('users',$user);
+		    	else
+		    		echo "Failed analysing user " . $person['username'];
+		    }
+		    else {
+		    	pushData('users',$person);
+		    }
 	    }
 
 	}
@@ -371,5 +384,24 @@
 		if (is_array($json))
 			return $json;
 		return json_decode($json,true);		
+	}
+
+	//Analyse user and find out if bot or not
+	//Return an array: isBot, certainty
+	function isBot($person) {
+		$postString = http_build_query($person, '', '&');
+		$ch = curl_init($GLOBALS['WSapi'].'analyse');
+		curl_setopt($ch, CURLOPT_POST, 1);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $postString);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+		    'Content-Type: application/x-www-form-urlencoded',
+		    'Connection: Keep-Alive'
+	    ));
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		$response = curl_exec($ch);
+		curl_close($ch);
+		$resultsArr = explode('&', $response);
+		return array('_id'	=>	$person['_id'], 'fullName' => $person['fullName'], 'username'	=>	$person['username'], 'profilePicture'	=>	$person['profilePicture'], 'results' => array('isBot' =>	is_numeric($resultsArr[0]) ? $resultsArr[0] : 0, 'certainty'	=>	(isset($resultsArr[1]) ? $resultsArr[1] : 0)*100));
 	}
 ?>

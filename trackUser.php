@@ -219,17 +219,17 @@
 				fwrite($fp, ",");
 				fclose($fp);
 			}
-			if (count($trackedUser['results']) >= 3 || $trackedUser['timestamp'] < strtotime('-3 day',$now)){
+			if (count($trackedUser['results']) >= 1 || $trackedUser['timestamp'] < strtotime('-3 day',$now)){
 				$user = calculateResults($trackedUser,true);
 				//Push final results to users table and delete the user from trackedUsers so we will not track him again
 				pushData('users',$user);
 				pushData('trackedUsers',array(),$user['_id'],'delete');
-				/*try {
-					$ig->people->unfollow($uid);
+				try {
+					$ig->people->unfollow($user['_id']);
 				}
 				catch (Exception $e) {
 					echo "Can't unfollow user " . $trackedUser['username'] . ': ' .$e->getMessage() . "\n";
-				}*/
+				}
 			}
 			else {
 				//FailSafe for first run
@@ -354,9 +354,9 @@
 					'_id' 						=>	$user['_id'],
 					'username' 					=>	$user['username'],
 					'trackingResults'			=>	array(
-							'isPrivate'					=>	$user['private'],
-							'isSuspicious'				=>	$analysedUser['isSuspicious'][0],
-							'isBot'						=>	$calculateResults['bot'],
+							'isPrivate'					=>	$user['private'] ? 1 : 0,
+							'isSuspicious'				=>	$analysedUser['isSuspicious'][0] ? 1 : 0,
+							'isBot'						=>	$calculateResults['bot'] ? 1 : 0,
 							'postVSfollowers'			=>	$analysedUser['postVSfollowers'][0],
 							'followingVSfollowers'		=>	$analysedUser['followingVSfollowers'][0],
 							'suspiciousName'			=>	$analysedUser['suspiciousName'][0],
@@ -367,7 +367,8 @@
 							'numOfMedia'				=>	$user['counts']['Media'],
 							'numOfFollowing'			=>	$user['counts']['Following'],
 							'numOfFollowers'			=>	$user['counts']['Followers'],
-							'certainty'					=>	$calculateResults['certainty']
+							'certainty'					=>	$calculateResults['certainty'],
+							'userId'					=>	$user['_id']
 							)
 				);
 		}

@@ -12,6 +12,7 @@
 
 	
 	if (strcmp($request, 'getIdol')==0) {
+		$directUsernameSearch = isset($_POST['username']) ? $_POST['username'] : true;
 		$idolNames = $_POST['idolNames'];
 		include_once "getIdol.php";
 	}
