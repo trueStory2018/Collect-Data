@@ -6,23 +6,46 @@
 			echo PHP_EOL.'Collecting data for '.$uid.PHP_EOL;
 		$response = json_decode(json_encode($ig->people->getInfoById($uid)));
 		if ($response->status=='ok'){
-			$person = array(
-				'_id' 				=> $uid,
-				'username' 			=> $response->user->username,
-				'fullName' 			=> $response->user->full_name,
-				'private' 			=> $response->user->is_private != '' ? 1 : 0, 
-				'verified' 			=> $response->user->is_verified != '' ? 1 : 0,
-				'profilePicture' 	=> !is_null($response->user->hd_profile_pic_url_info->url) ? $response->user->hd_profile_pic_url_info->url : '',
-				'Followers' 		=> $response->user->follower_count,
-				'Following' 		=> $response->user->following_count, 
-				'UserTags' 			=> $response->user->usertags_count, 
-				'countsm' 			=> $response->user->media_count,
-				'bio' 				=> $response->user->biography,
-				'city' 				=> '',
-				'publicEmail' 		=> '',
-				'birthday' 			=> '',
-				'media'				=> array()
-				);
+			if ($deployment) {
+				$person = array(
+					'_id' 				=> $uid,
+					'username' 			=> $response->user->username,
+					'fullName' 			=> $response->user->full_name,
+					'private' 			=> $response->user->is_private != '' ? 1 : 0, 
+					'verified' 			=> $response->user->is_verified != '' ? 1 : 0,
+					'profilePicture' 	=> !is_null($response->user->hd_profile_pic_url_info->url) ? $response->user->hd_profile_pic_url_info->url : '',
+					'Followers' 		=> $response->user->follower_count,
+					'Following' 		=> $response->user->following_count, 
+					'UserTags' 			=> $response->user->usertags_count, 
+					'countsm' 			=> $response->user->media_count,
+					'bio' 				=> $response->user->biography,
+					'city' 				=> '',
+					'publicEmail' 		=> '',
+					'birthday' 			=> '',
+					'media'				=> array()
+					);
+			}
+			else {
+				$person = array(
+					'_id' 				=> $uid,
+					'username' 			=> $response->user->username,
+					'fullName' 			=> $response->user->full_name != '' ? $response->user->full_name : false,
+					'private' 			=> $response->user->is_private != '' ? true : false, 
+					'verified' 			=> $response->user->is_verified != '' ? true : false,
+					'profilePicture' 	=> !is_null($response->user->hd_profile_pic_url_info->url) ? $response->user->hd_profile_pic_url_info->url : false,
+					'counts' 			=> array(
+											'Followers' => $response->user->follower_count,
+											'Following' => $response->user->following_count, 
+											'UserTags' => $response->user->usertags_count, 
+											'Media' => $response->user->media_count
+										),
+					'bio' 				=> $response->user->biography != '' ? $response->user->biography : false,
+					'city' 				=> false,
+					'publicEmail' 		=> false,
+					'birthday' 			=> false,
+					'media'				=> array()
+					);
+			}
 		}
 		else
 			return;
@@ -44,14 +67,14 @@
 			try {
 				do {
 					$response = $ig->people->getFollowers($uid,$maxId);
-					foreach ($response->users as $user) {
+					foreach ($response->getUsers() as $user) {
 						if ($user!=null)
-							if ($user->pk != $selfID)
-								array_push($arr, $user->pk);
-						$maxId = $response->getNextMaxId();
+							if ($user->getPk() != $selfID)
+								array_push($arr, $user->getPk());
 					}
 					sleep(5);
 					$counter++;
+					$maxId = $response->getNextMaxId();
 				} while ($maxId !== null && $counter<$maxRuns);
 
 				pushData('idols',$arr,$uid,'followers');
@@ -60,28 +83,26 @@
 				echo "Can't Collect followers for " . $person['username'] . ': ' .$e->getMessage() . "\n";
 			}
 		}
-		if (!$deployment) {
-			//Push also to trackedUsers - since we will be tracking all users
-			$trackingInfo = array(
-				'_id' 		=> $person['_id'],
-				'username' 	=> $person['username'],
-				'private' 	=> $person['private'], 
-				'verified' 	=> $person['verified'],
-				'counts' 	=> array('Following'	=>	$person['Following'],
-									'Followers'		=>	$person['Followers'],
-									'Media'			=>	$person['countsm']
-								),
-				'timestamp' => microtime(true),
-				'results'	=> array()
-				);
-		    pushData('trackedUsers',$trackingInfo);
-		}
+		//Push also to trackedUsers - since we will be tracking all users
+		$trackingInfo = array(
+			'_id' 		=> $person['_id'],
+			'username' 	=> $person['username'],
+			'private' 	=> $person['private'], 
+			'verified' 	=> $person['verified'],
+			'counts' 	=> array('Following'	=>	$person['Following'],
+								'Followers'		=>	$person['Followers'],
+								'Media'			=>	$person['countsm']
+							),
+			'timestamp' => microtime(true),
+			'results'	=> array()
+			);
+		pushData('trackedUsers',$trackingInfo);
 		//////////////////Get MEDIA
 
 		$maxId = null;
 		$arr = array();
 		$counter = 0;
-		if (!$person['private']){
+		if (!$person['private'] && !$idol){
 			do {
 				if ($debug) {
 					echo 'Media loop #'.$counter.': ';
@@ -147,7 +168,7 @@
 	    if ($debug){
 	    	$time_end = microtime(true);
 	    	$execution_time = ($time_end - $time_start);
-			echo 'Total Execution Time: '.$execution_time.' seconds'.PHP_EOL;
+			echo 'Execution Time for user: '.$execution_time.' seconds'.PHP_EOL;
 	    }
 	    if (!$idol){
 	    	$person['media'] = $arr;
@@ -201,7 +222,7 @@
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 		$response = curl_exec($ch);
 		curl_close($ch);
-		return json_decode($response,true);
+		return json_decode($response,true)[0]['followers'][0];
 	}
 
 	function pushData($collection, $data, $uid = false,$action=null) {
@@ -293,7 +314,7 @@
 	}
 
 	function getUsers($uid = null) {
-		$url = 'https://api.mlab.com/api/1/databases/analysis/collections/users';
+		$url = 'https://api.mlab.com/api/1/databases/analysis/collections/analysisResults';
 		if ($uid!=null)
 			$url.='?q={"_id":"'.$uid.'"}&';
 		else

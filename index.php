@@ -6,7 +6,8 @@
 	$debug = false;
 	$truncatedDebug = false;
 	$beginning = microtime(true);
-	$deployment = true; //When this is set to false -- we are doing pre deployment and would behave differently
+	//We will set definition if deployment or not via command line
+	$deployment = isset($argv[1]) ? $argv[1] : true; //When this is set to false -- we are doing pre deployment and would behave differently
 	//If we wish to show in browser - change to true
 	\InstagramAPI\Instagram::$allowDangerousWebUsageAtMyOwnRisk = false;
 	$ig = new \InstagramAPI\Instagram($debug, $truncatedDebug);

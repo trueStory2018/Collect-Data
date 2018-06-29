@@ -219,10 +219,10 @@
 				fwrite($fp, ",");
 				fclose($fp);
 			}
-			if (count($trackedUser['results']) >= 1 || $trackedUser['timestamp'] < strtotime('-3 day',$now)){
+			if (count($trackedUser['results']) >= 3 || $trackedUser['timestamp'] < strtotime('-3 day',$now)){
 				$user = calculateResults($trackedUser,true);
 				//Push final results to users table and delete the user from trackedUsers so we will not track him again
-				pushData('users',$user);
+				pushData('trainingResults',$user);
 				pushData('trackedUsers',array(),$user['_id'],'delete');
 				try {
 					$ig->people->unfollow($user['_id']);
@@ -238,8 +238,9 @@
 		       	$user = $trackedUser;
 		       	$user['certainty'] = calculateResults($trackedUser);
 		       	//Push results to DB
-	       		pushData('trackedUsers', $usersToTrack[$key]);
-				pushData('users',calculateResults($trackedUser)['certainty'],$trackedUser['_id'],'analysisResults');
+	       		pushData('trackedUsers', $user);
+				pushData('analysisResults',calculateResults($trackedUser)['certainty'],$user['_id'],'analysisResults');
+				unset($user);
 			}
 			if ($debug) {
 				$fp = fopen($filename, 'a+');

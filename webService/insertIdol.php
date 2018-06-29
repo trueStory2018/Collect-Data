@@ -4,15 +4,15 @@
 	if (!empty($idolNames)) { 
 		try{
 			include_once "getIdol";
-
+			print_r(expression)
 			$url = 'https://api.mlab.com/api/1/databases/analysis/collections/idols?apiKey=tvG8BMjzxtNwm3fRgQv4LNbcF2IIeWWc';
-			$data = array( '_id' => $resultArray[$username]['data']['userID'],
+			$data = array( '_id' => $resultArray['data'][0]['userID'],
 							'lastModified' => microtime(true),
 							'collected' => false,
-							'profilePicture'	=>	$resultArray[$username]['data']['profilePicture'],
-							'fullName'			=>  $resultArray[$username]['data']['fullName'],
+							'profilePicture'	=>	$resultArray['data'][0]['profilePicture'],
+							'fullName'			=>  $resultArray['data'][0]['fullName'],
 							'userName'			=>  $username,
-							'counts'			=>	$resultArray[$username]['data']['counts'],
+							'counts'			=>	$resultArray['data'][0]['counts'],
 							'selfFollow'		=>	isset($_POST['selfFollow']) ? $_POST['selfFollow'] : false
 						);
 			$ch = curl_init($url);
@@ -21,7 +21,6 @@
 			    'Connection: Keep-Alive'
 		    ));
 			curl_setopt($ch, CURLOPT_POST, 1);
-			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
 			curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);

@@ -72,12 +72,12 @@
 		$http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);
 		$linksArr = explode('https://www.instagram.com/', $response);
-		$linksArr = array_unique($linksArr);
 		foreach ($linksArr as $key => $link) {
 			$linksArr[$key] = $baseURL.substr($link, 0, strpos($link, '/'));
 		}
 		//Irrelevant text prior to links - we will replace it with an extreme case fix
 		$linksArr[0] = $baseURL.$keyWord;
+		$linksArr = array_unique($linksArr);
 		return $linksArr;
 	}
 

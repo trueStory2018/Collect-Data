@@ -1,12 +1,12 @@
 <?php
 	$idols = getIdols();
 	if (!empty($idols)){
-		foreach ($idols as $idol) {
+		foreach ($idols as $idolToCollect) {
 			$idol = true;
 			try {
-			    $uid = $idol['_id'];
+			    $uid = $idolToCollect['_id'];
 			    //If we are not analyzing this idol as an idol but as a user
-				if ($idol['selfFollow']) {
+				if ($idolToCollect['selfFollow']) {
 					$idol = false;
 					pushData('idols',array($uid),$uid,'followers');
 				}
