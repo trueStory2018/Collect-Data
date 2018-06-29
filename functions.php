@@ -69,7 +69,7 @@
 					$response = $ig->people->getFollowers($uid,$maxId);
 					foreach ($response->getUsers() as $user) {
 						if ($user!=null)
-							if ($user->getPk() != $selfID)
+							if ($user->getPk() != $GLOBALS['selfID'])
 								array_push($arr, $user->getPk());
 					}
 					sleep(5);
